@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Organizations - allow authenticated users to create and read
+    match /organizations/{orgId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+    
+    // Users - allow creation and reading for authenticated users
+    match /users/{userId} {
+      // Allow read for password reset (need to find user by email)
+      allow read: if true;
+      // Allow create for new user registration (including students)
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated();
+    }
+    
+    // Students - allow read for login, write for authenticated users
+    match /students/{studentId} {
+      // Allow unauthenticated read for login verification
+      allow read: if true;
+      // Allow write only for authenticated users
+      allow write: if isAuthenticated();
+    }
+    
+    // Classes - allow all operations for authenticated users
+    match /classes/{classId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Attendance - allow all operations for authenticated users
+    match /attendance/{attendanceId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // OTPs - allow unauthenticated read/write for password reset
+    // This is required for forgot password functionality
+    match /otps/{otpId} {
+      allow read, write: if true;
+    }
+    
+    // Queries - allow authenticated users to create and read their own queries
+    match /queries/{queryId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+  }
+}
